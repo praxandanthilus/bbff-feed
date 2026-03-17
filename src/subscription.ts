@@ -4,31 +4,37 @@ import {
 } from './lexicon/types/com/atproto/sync/subscribeRepos'
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
 
+const KEYWORDS = [
+  'firefly',
+  'bring back firefly',
+  '#bringbackfirefly',
+  '#firefly',
+]
+
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
   async handleEvent(evt: RepoEvent) {
     if (!isCommit(evt)) return
 
     const ops = await getOpsByType(evt)
 
-    // This logs the text of every post off the firehose.
-    // Just for fun :)
-    // Delete before actually using
-    for (const post of ops.posts.creates) {
-      console.log(post.record.text)
-    }
+    // Stop logging every post (it will flood Fly logs)
+    // for (const post of ops.posts.creates) {
+    //   console.log(post.record.text)
+    // }
 
     const postsToDelete = ops.posts.deletes.map((del) => del.uri)
+
     const postsToCreate = ops.posts.creates
       .filter((create) => {
-        // only alf-related posts
-        return create.record.text.toLowerCase().includes('alf')
+        const text = (create.record.text ?? '').toLowerCase()
+        return KEYWORDS.some((k) => text.includes(k))
       })
       .map((create) => {
-        // map alf-related posts to a db row
         return {
           uri: create.uri,
           cid: create.cid,
           indexedAt: new Date().toISOString(),
+          text: create.record.text ?? null,   // <-- requires DB column + schema update
         }
       })
 
@@ -38,6 +44,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .where('uri', 'in', postsToDelete)
         .execute()
     }
+
     if (postsToCreate.length > 0) {
       await this.db
         .insertInto('post')

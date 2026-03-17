@@ -27,3 +27,19 @@ migrations['001'] = {
     await db.schema.dropTable('sub_state').execute()
   },
 }
+
+migrations['002_add_post_text'] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .alterTable('post')
+      .addColumn('text', 'text')
+      .execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema
+      .alterTable('post')
+      .dropColumn('text')
+      .execute()
+  },
+}
+

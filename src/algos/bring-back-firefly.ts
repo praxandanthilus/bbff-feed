@@ -8,9 +8,7 @@ export const shortname = 'bring-back-firefly'
 
 const KEYWORDS = [
   'firefly',
-  'serenity'
   'bring back firefly',
-  '#BrowncoatsUnite'
   '#bringbackfirefly',
   '#firefly',
 ]
@@ -21,23 +19,21 @@ export async function handler(
 ): Promise<AlgoOutput> {
   const limit = params.limit ?? 50
 
-  const posts = await ctx.db
+  const rows = await ctx.db
     .selectFrom('post')
-    .select(['uri', 'text', 'indexedAt'])
+    .select(['uri', 'text'])
     .orderBy('indexedAt', 'desc')
-    .limit(500) // look at recent posts
+    .limit(500)
     .execute()
 
-  const filtered = posts
-    .filter(p =>
+  const feed = rows
+    .filter(r =>
       KEYWORDS.some(k =>
-        p.text?.toLowerCase().includes(k),
+        r.text?.toLowerCase().includes(k),
       ),
     )
     .slice(0, limit)
-    .map(p => ({ post: p.uri }))
+    .map(r => ({ post: r.uri }))
 
-  return {
-    feed: filtered,
-  }
+  return { feed }
 }
