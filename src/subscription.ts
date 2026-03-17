@@ -38,6 +38,8 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         }
       })
 
+      console.log('MATCHED POSTS:', postsToCreate.length)
+
     if (postsToDelete.length > 0) {
       await this.db
         .deleteFrom('post')
