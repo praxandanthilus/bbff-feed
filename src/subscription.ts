@@ -17,28 +17,19 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
 
     const ops = await getOpsByType(evt)
 
-    // for (const create of ops.posts.creates) {
-    //   console.log("INDEXING:", create.record.text)
-    // }
-
     const postsToDelete = ops.posts.deletes.map((del) => del.uri)
 
     const postsToCreate = ops.posts.creates
       .filter((create) => {
         const text = (create.record.text ?? '').toLowerCase()
-        console.log("CHECKING TEXT:", JSON.stringify(text))
         return KEYWORDS.some((k) => text.includes(k))
       })
-      .map((create) => {
-        return {
-          uri: create.uri,
-          cid: create.cid,
-          indexedAt: new Date().toISOString(),
-          text: create.record.text ?? null,   // <-- requires DB column + schema update
-        }
-      })
-
-      console.log('MATCHED POSTS:', postsToCreate.length)
+      .map((create) => ({
+        uri: create.uri,
+        cid: create.cid,
+        indexedAt: new Date().toISOString(),
+        text: create.record.text ?? null,
+      }))
 
     if (postsToDelete.length > 0) {
       await this.db
