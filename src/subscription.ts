@@ -17,10 +17,10 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
 
     const ops = await getOpsByType(evt)
 
-    // Stop logging every post (it will flood Fly logs)
-    // for (const post of ops.posts.creates) {
-    //   console.log(post.record.text)
-    // }
+    for (const create of ops.posts.creates) {
+      console.log("INDEXING:", create.record.text)
+    }
+
 
     const postsToDelete = ops.posts.deletes.map((del) => del.uri)
 
