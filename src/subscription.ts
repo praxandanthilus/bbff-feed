@@ -4,12 +4,21 @@ import {
 } from './lexicon/types/com/atproto/sync/subscribeRepos'
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
 
-const KEYWORDS = [
-  'firefly',
-  'bring back firefly',
-  '#bringbackfirefly',
-  '#firefly',
+// Require ANY ONE of these hashtags (case-insensitive), as real hashtag tokens.
+const REQUIRED_HASHTAGS = [
+  'bringbackfirefly',
+  'browncoatsunite',
+  'cabrowncoats',
 ]
+
+// Matches a real hashtag token like "#bringbackfirefly" with word boundary-ish behavior.
+// This avoids false positives like "sad_firefly_4890" (not a hashtag token).
+function hasAnyRequiredHashtag(raw: string | null | undefined): boolean {
+  const text = (raw ?? '').toLowerCase()
+  return REQUIRED_HASHTAGS.some((tag) =>
+    new RegExp(`(^|\\s)#${tag}(\\b|$)`, 'i').test(text),
+  )
+}
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
   async handleEvent(evt: RepoEvent) {
@@ -20,16 +29,15 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     const postsToDelete = ops.posts.deletes.map((del) => del.uri)
 
     const postsToCreate = ops.posts.creates
-      .filter((create) => {
-        const text = (create.record.text ?? '').toLowerCase()
-        return KEYWORDS.some((k) => text.includes(k))
+      .filter((create) => hasAnyRequiredHashtag(create.record.text))
+      .map((create) => {
+        return {
+          uri: create.uri,
+          cid: create.cid,
+          indexedAt: new Date().toISOString(),
+          text: create.record.text ?? null,
+        }
       })
-      .map((create) => ({
-        uri: create.uri,
-        cid: create.cid,
-        indexedAt: new Date().toISOString(),
-        text: create.record.text ?? null,
-      }))
 
     if (postsToDelete.length > 0) {
       await this.db
